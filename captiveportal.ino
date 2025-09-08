@@ -89,7 +89,7 @@ void startPortal() {
   portalIsOpen = true;
 
   WiFi.mode(WIFI_AP);
-  if (!WiFi.softAP("YOYO-"+String(myID), "12345678")) {
+  if (!WiFi.softAP("Yo-Yo-"+String(myID), "blinkblink")) {
     Serial.println("AP start failed");
     return;
   }
