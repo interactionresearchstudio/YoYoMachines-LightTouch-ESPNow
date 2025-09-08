@@ -4,7 +4,7 @@
 esp_now_peer_info_t slave;
 
 uint8_t macSlaves[][6] = {
-  {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+  { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }
 };
 
 uint8_t channel = DEFAULT_CHANNEL;
@@ -23,8 +23,7 @@ void initEspNow() {
 
   if (esp_now_init() == ESP_OK) {
     Serial.println("ESPNow Init Success");
-  }
-  else {
+  } else {
     Serial.println("ESPNow Init Failed");
     ESP.restart();
   }
@@ -36,12 +35,14 @@ void initEspNow() {
     memcpy(slave.peer_addr, macSlaves[i], sizeof(macSlaves[i]));
     esp_now_add_peer(&slave);
   }
-  esp_now_register_send_cb(onDataSent);
-  esp_now_register_recv_cb(onDataReceive);
+  esp_now_register_send_cb((esp_now_send_cb_t)onDataSent);
+  esp_now_register_recv_cb((esp_now_recv_cb_t)onDataReceive);
 }
 
 void sendButtonPress() {
   cmd.cmd = 65;
+  strncpy(cmd.uniqueID, channelID, sizeof(cmd.uniqueID));
+  cmd.uniqueID[sizeof(cmd.uniqueID) - 1] = '\0';
   cmd.sendHue = 0;
   sendMessage(cmd);
 }
@@ -49,24 +50,25 @@ void sendButtonPress() {
 void sendColour() {
   uint16_t currentPos = getUserHue();
   cmd.cmd = 66;
+  strncpy(cmd.uniqueID, channelID, sizeof(cmd.uniqueID));
+  cmd.uniqueID[sizeof(cmd.uniqueID) - 1] = '\0';
   cmd.sendHue = currentPos;
   sendMessage(cmd);
 }
 
 void sendMessage(command_struct cmd) {
-  uint8_t macAddr[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  esp_err_t result = esp_now_send(macAddr, (uint8_t *) &cmd, sizeof(cmd));
+  uint8_t macAddr[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+  esp_err_t result = esp_now_send(macAddr, (uint8_t *)&cmd, sizeof(cmd));
 
   if (result == ESP_OK) {
     Serial.println("Sent message");
-  }
-  else {
+  } else {
     Serial.println("Error sending data");
   }
 }
 
 // On data received
-void onDataReceive(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+void onDataReceive(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&incomingCommand, incomingData, sizeof(incomingCommand));
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -77,20 +79,21 @@ void onDataReceive(const uint8_t * mac_addr, const uint8_t *incomingData, int le
   Serial.println(macStr);
   Serial.print("Bytes received: ");
   Serial.println(len);
-
-  if (incomingCommand.cmd == 65) {
-    Serial.println("TEST");
-    blinkDevice();
-  } else if (incomingCommand.cmd == 66) {
-    Serial.print("LIGHTTOUCH ");
-    Serial.println(incomingCommand.sendHue);
-    uint16_t data_hue = incomingCommand.sendHue;
-    hue[REMOTELED] = (uint8_t)data_hue;
-    ledChanged[REMOTELED] = true;
-    //added to enable reset of fading mid fade
-    isFadingRGB[REMOTELED] = false;
-    fadeRGB(REMOTELED);
-    startLongFade(REMOTELED);
+  if (String(incomingCommand.uniqueID) == savedText) {
+    if (incomingCommand.cmd == 65) {
+      Serial.println("TEST");
+      blinkDevice();
+    } else if (incomingCommand.cmd == 66) {
+      Serial.print("LIGHTTOUCH ");
+      Serial.println(incomingCommand.sendHue);
+      uint16_t data_hue = incomingCommand.sendHue;
+      hue[REMOTELED] = (uint8_t)data_hue;
+      ledChanged[REMOTELED] = true;
+      //added to enable reset of fading mid fade
+      isFadingRGB[REMOTELED] = false;
+      fadeRGB(REMOTELED);
+      startLongFade(REMOTELED);
+    }
   }
 }
 

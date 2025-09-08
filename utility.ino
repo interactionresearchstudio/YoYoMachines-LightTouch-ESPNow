@@ -64,7 +64,7 @@ void handleButtonEvent(AceButton* button, uint8_t eventType, uint8_t buttonState
           sendButtonPress();
           break;
         case AceButton::kEventLongPressed:
-          factoryReset();
+          startPortal();
           break;
         case AceButton::kEventRepeatPressed:
           break;
@@ -193,4 +193,19 @@ long checkFadingLength() {
     Serial.println("Your fade time is 6 hours");
     return 360;
   }
+}
+
+void setupPrefs(){
+  prefs.begin("cfg", false);
+  savedText = prefs.getString("text", "");
+  toFixedArray(savedText,channelID);
+  Serial.print("Saved text: ");
+  Serial.println(savedText);
+}
+
+void toFixedArray(const String &s, char out[24]) {
+  memset(out, 0, 24);  // fill with NULs
+  size_t n = s.length();
+  if (n > 23) n = 23;  // leave room for '\0'
+  memcpy(out, s.c_str(), n);
 }
